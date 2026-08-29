@@ -1,23 +1,10 @@
-buildscript {
-    repositories {
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-    }
-    dependencies {
-        classpath 'org.spongepowered:mixingradle:0.7.+'
-        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.4.0"
-    }
-}
-
 plugins {
+    id 'java-library'
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id "net.darkhax.curseforgegradle" version "1.0.7"
-    id "com.modrinth.minotaur" version "2.+"
+    id 'net.neoforged.moddev' version '2.0.111'
 }
-
-apply plugin: 'org.spongepowered.mixin'
 
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
@@ -26,178 +13,76 @@ base {
     archivesName = mod_id
 }
 
-jarJar.enable()
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-
-    copyIdeResources = true
-
-    runs {
-        all {
-            workingDirectory project.file('run')
-            arg "-mixin.config=" + project.getProperty('mod_id') + ".mixins.json"
-            mods {
-                tact {
-                    source sourceSets.main
-                }
-            }
-        }
-        client {}
-        server {}
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
 repositories {
+    mavenCentral()
     maven {
-        url = 'https://www.cursemaven.com'
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
         content {
-            includeGroup 'curse.maven'
+            includeGroup "maven.modrinth"
         }
     }
     maven {
-        url = 'https://nexus.resourcefulbees.com/repository/maven-public/'
+        name = "CurseMaven"
+        url = "https://www.cursemaven.com"
         content {
-            includeGroup 'com.telepathicgrunt'
+            includeGroup "curse.maven"
+        }
+    }
+}
+
+neoForge {
+    version = neo_version
+    parchment {
+        mappingsVersion = parchment_mappings_version
+        minecraftVersion = parchment_minecraft_version
+    }
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
         }
     }
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
-    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${project.mixin_extras_version}"))
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:${project.mixin_extras_version}")) {
-        jarJar.ranged(it, "[${project.mixin_extras_version},)")
-    }
-
-    implementation(runtimeOnly(fg.deobf("curse.maven:alexs-caves-924854:5848216")))
-    implementation(runtimeOnly(fg.deobf("curse.maven:citadel-331936:6702068")))
-
-    //runtimeOnly fg.deobf("com.telepathicgrunt:CommandStructures-Forge:4.1.0+1.20.1")
-    //runtimeOnly fg.deobf("com.telepathicgrunt:StructureVoidToggle-Forge:4.2.6+1.20.1")
+    // Alex's Caves unofficial 1.21.1 NeoForge port, plus its Citadel dependency.
+    // These are on the runtime classpath as well as compile, so runClient/runServer
+    // actually load them and the mixins targeting Alex's Caves classes are exercised.
+    implementation "maven.modrinth:kSsLSjEt:${alexs_caves_version}"
+    implementation "maven.modrinth:citadel:${citadel_version}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
-            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
-            loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
     ]
     inputs.properties replaceProperties
-
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
 }
-
-mixin {
-    add sourceSets.main, "${mod_id}.refmap.json"
-}
-
-jar.finalizedBy('reobfJar')
-
-tasks.jarJar.configure {
-    archiveClassifier = ''
-}
-
-tasks.named('jar', Jar).configure {
-    archiveClassifier = '-slim'
-
-    manifest {
-        attributes([
-                'Specification-Title'     : mod_id,
-                'Specification-Vendor'    : mod_authors,
-                'Specification-Version'   : '1', // We are version 1 of ourselves
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                "MixinConfigs"            : "${mod_id}.mixins.json"
-        ])
-    }
-
-    // This is the preferred method to reobfuscate your jar file
-    finalizedBy 'reobfJar'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-
-            pom {
-                name = 'TACT'
-                description = 'Tiny Alex\'s Caves Tweaks'
-                url = 'https://github.com/TelepathicGrunt/TACT'
-
-                scm {
-                    connection = 'git:https://github.com/TelepathicGrunt/TACT.git'
-                    developerConnection = 'git:https://github.com/TelepathicGrunt/TACT.git'
-                    url = 'https://github.com/TelepathicGrunt/TACT'
-                }
-
-                licenses {
-                    license {
-                        name = 'MIT'
-                        url = 'https://github.com/TelepathicGrunt/TACT/LICENSE'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'telepathic_grunt'
-                        name = 'TelepathicGrunt'
-                        email = 'asarnesespam@gmail.com'
-                    }
-                }
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            url = uri("https://nexus.resourcefulbees.com/repository/telepathicgrunt/")
-            credentials {
-                username "$System.env.MAVEN_USER"
-                password "$System.env.MAVEN_PASS"
-            }
-        }
-    }
-}
-
-String changelogText = file("CHANGELOG.md").getText('UTF-8')
-task publishCurseForge(type: net.darkhax.curseforgegradle.TaskPublishCurseForge) {
-    apiToken = "$System.env.CURSEFORGEKEY"
-    int projectId = 926263
-
-    def mainFile = upload(projectId, tasks.jarJar.archiveFile)
-    mainFile.changelog = changelogText
-    mainFile.addGameVersion("1.20.1")
-    mainFile.changelogType = "markdown"
-    mainFile.releaseType = "release"
-    mainFile.displayName = "TACT v${project.mod_version} (${project.minecraft_version} MC)"
-
-    mainFile.addRequirement("alexs-caves")
-}
-
-task checkForRefmap() {
-    if (file("./build/libs/tact-${project.mod_version}+${project.minecraft_version}.jar").exists()) {
-        assert zipTree("./build/libs/tact-${project.mod_version}+${project.minecraft_version}.jar")
-                .matching { include "tact.refmap.json" }.getSingleFile() != null
-    }
-}
-
-task buildAndRelease{}
-tasks.checkForRefmap.mustRunAfter tasks.build
-tasks.publish.mustRunAfter tasks.checkForRefmap
-tasks.publishCurseForge.mustRunAfter tasks.publish
-tasks.buildAndRelease.dependsOn(tasks.build, tasks.publish, tasks.publishCurseForge)

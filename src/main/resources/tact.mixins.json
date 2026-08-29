@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "com.telepathicgrunt.tact.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "refmap": "tact.refmap.json",
   "mixins": [
     "BiomeTreatItemMixin",
@@ -17,7 +17,6 @@
     "GeodeFeatureMixin",
     "GobthumperBlockEntityMixin",
     "HazmatArmorItemMixin",
-    "ItemAccessor",
     "LuxtructosaurusEntityMixin",
     "LuxtructosaurusMeleeGoalMixin",
     "MagnetronEntityMixin",
@@ -26,7 +25,6 @@
     "NuclearFurnaceBlockEntityMixin",
     "PrimitiveClubItemMixin",
     "RaygunItemMixin",
-    "ResizeEventFixMixin",
     "SpearItemAccessor",
     "SubterranodonEntityMixin",
     "TremorsaurusEntityMixin",

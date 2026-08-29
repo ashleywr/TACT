@@ -24,3 +24,9 @@ run
 deps
 common/src/generated
 CHANGELOG_OLD.md
+
+# Local build/run output
+run/
+*-build*.log
+*-compile*.log
+*-smoke*.log

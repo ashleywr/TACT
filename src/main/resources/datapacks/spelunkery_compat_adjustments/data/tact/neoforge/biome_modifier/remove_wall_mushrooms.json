@@ -1,5 +1,5 @@
 {
-  "type": "forge:remove_features",
+  "type": "neoforge:remove_features",
   "biomes": [
     "alexscaves:abyssal_chasm",
     "alexscaves:forlorn_hollows",

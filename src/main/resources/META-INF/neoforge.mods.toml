@@ -1,33 +1,37 @@
-modLoader="javafml" 
+modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
+issueTrackerURL="https://github.com/TelepathicGrunt/TACT/issues"
 
-[[mods]] 
-modId="${mod_id}" 
-version="${mod_version}" 
+[[mixins]]
+config="tact.mixins.json"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 description='''${mod_description}'''
 logoFile="icon.png"
 logoBlur=false
 
-[[dependencies.${mod_id}]] #optional
-    modId="forge"
-    mandatory=true
-    versionRange="${forge_version_range}"
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="${neo_version_range}"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
     modId="minecraft"
-    mandatory=true
+    type="required"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
     modId="alexscaves"
-    mandatory=true
+    type="required"
     versionRange="[2.0.0,)"
     ordering="AFTER"
     side="BOTH"

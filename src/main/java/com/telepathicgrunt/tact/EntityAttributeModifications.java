@@ -2,21 +2,12 @@ package com.telepathicgrunt.tact;
 
 import com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
-import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.config.ConfigTracker;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 
-import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.Optional;
 
 public class EntityAttributeModifications {
 
     public static void AttributeModifications(EntityAttributeModificationEvent event) {
-        loadTACTConfigsEarly();
 
         event.add(ACEntityRegistry.ATLATITAN.get(), Attributes.MAX_HEALTH, Config.ATLATITAN_MAX_HEALTH.get());
         event.add(ACEntityRegistry.ATLATITAN.get(), Attributes.ATTACK_DAMAGE, Config.ATLATITAN_ATTACK_DAMAGE.get());
@@ -178,24 +169,4 @@ public class EntityAttributeModifications {
 
     }
 
-    private static void loadTACTConfigsEarly() {
-        Optional<? extends ModContainer> modContainerById = ModList.get().getModContainerById(TACT.MODID);
-        modContainerById.ifPresent(container -> {
-            ConfigTracker.INSTANCE.configSets()
-                    .get(ModConfig.Type.COMMON)
-                    .forEach(c -> {
-                        if (c.getFileName().equals("tact-common.toml")) {
-                            try {
-                                Method method = ConfigTracker.INSTANCE.getClass().getDeclaredMethod("openConfig", ModConfig.class, Path.class);
-                                method.setAccessible(true);
-                                method.invoke(ConfigTracker.INSTANCE, c, FMLPaths.CONFIGDIR.get());
-                                method.setAccessible(false);
-                            }
-                            catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-        });
-    }
 }

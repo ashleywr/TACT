@@ -10,12 +10,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public class CompendiumUnlock {
 
     private static final TagKey<Biome> ALEXS_CAVES_BIOME_TAG =
-            TagKey.create(Registries.BIOME, new ResourceLocation(TACT.ALEXS_CAVES_MODID, "alexs_caves_biomes"));
+            TagKey.create(Registries.BIOME, ResourceLocation.fromNamespaceAndPath(TACT.ALEXS_CAVES_MODID, "alexs_caves_biomes"));
 
     public static void playerLoggedIn(final PlayerEvent.PlayerLoggedInEvent event) {
         if (!Config.UNLOCK_ALL_COMPENDIUM_INFO.get()) {

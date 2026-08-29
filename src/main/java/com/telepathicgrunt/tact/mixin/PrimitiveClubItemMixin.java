@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class PrimitiveClubItemMixin {
 
     @Unique
-    private static final TagKey<EntityType<?>> TACT_PRIMITIVE_CLUB_STUN_IMMUNE = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(TACT.MODID, "primitive_club_stun_immune"));
+    private static final TagKey<EntityType<?>> TACT_PRIMITIVE_CLUB_STUN_IMMUNE = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(TACT.MODID, "primitive_club_stun_immune"));
 
     @ModifyExpressionValue(method = "hurtEnemy(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;)Z",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/util/RandomSource;nextFloat()F", ordinal = 0),

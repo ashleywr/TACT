@@ -1,102 +1,71 @@
 package com.telepathicgrunt.tact;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
-import net.minecraftforge.event.AddPackFindersEvent;
-import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.ModLoader;
-import net.minecraftforge.fml.config.ConfigTracker;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.resource.PathPackResources;
-
-import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.Optional;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.event.AddPackFindersEvent;
 
 public class DataAndResourcePacks {
 
+    /**
+     * 1.21 replaced the manual Pack.readMetaAndCreate plus PathPackResources dance with
+     * AddPackFindersEvent.addPackFinders, which resolves the pack out of the mod jar for
+     * us. The 1.20.1 version also reflected into ConfigTracker to force configs to load
+     * early; that is no longer needed, and its targets have changed shape anyway
+     * (configSets became a field, openConfig gained a third parameter), so it is gone.
+     */
     static void setupBuiltInDataPack(final AddPackFindersEvent event) {
-        try {
-            if (Config.APPLY_TAG_ADJUSTMENTS.get() && event.getPackType() == PackType.SERVER_DATA) {
-                var resourcePath =  ModList.get().getModFileById(TACT.MODID).getFile()
-                        .findResource("datapacks/apply_tag_adjustments");
-
-                var pack = Pack.readMetaAndCreate(
-                        "tact/apply_tag_adjustments",
+        if (event.getPackType() == PackType.SERVER_DATA) {
+            if (readConfig(Config.APPLY_TAG_ADJUSTMENTS::get)) {
+                event.addPackFinders(
+                        ResourceLocation.fromNamespaceAndPath(TACT.MODID, "datapacks/apply_tag_adjustments"),
+                        PackType.SERVER_DATA,
                         Component.literal("TACT - Adjusted Tags"),
+                        PackSource.BUILT_IN,
                         true,
-                        (path) -> new PathPackResources(path, false, resourcePath),
-                        PackType.SERVER_DATA,
-                        Pack.Position.BOTTOM,
-                        PackSource.DEFAULT);
-
-                event.addRepositorySource((packConsumer) -> packConsumer.accept(pack));
+                        Pack.Position.BOTTOM);
             }
 
-            if (Config.APPLY_SPELUNKERY_COMPAT_ADJUSTMENTS.get() && event.getPackType() == PackType.SERVER_DATA && ModList.get().isLoaded("spelunkery")) {
-                var resourcePath =  ModList.get().getModFileById(TACT.MODID).getFile()
-                        .findResource("datapacks/spelunkery_compat_adjustments");
-
-                var pack = Pack.readMetaAndCreate(
-                        "tact/spelunkery_compat_adjustments",
+            if (ModList.get().isLoaded("spelunkery") && readConfig(Config.APPLY_SPELUNKERY_COMPAT_ADJUSTMENTS::get)) {
+                event.addPackFinders(
+                        ResourceLocation.fromNamespaceAndPath(TACT.MODID, "datapacks/spelunkery_compat_adjustments"),
+                        PackType.SERVER_DATA,
                         Component.literal("TACT - Spelunkery Compat Adjustments"),
+                        PackSource.BUILT_IN,
                         true,
-                        (path) -> new PathPackResources(path, false, resourcePath),
-                        PackType.SERVER_DATA,
-                        Pack.Position.BOTTOM,
-                        PackSource.DEFAULT);
-
-                event.addRepositorySource((packConsumer) -> packConsumer.accept(pack));
+                        Pack.Position.BOTTOM);
             }
-
-            if (event.getPackType() == PackType.CLIENT_RESOURCES) {
-                loadTACTConfigsEarly();
-
-                if (Config.RESTORE_END_STORY.get()) {
-                    var resourcePath =  ModList.get().getModFileById(TACT.MODID).getFile()
-                            .findResource("resourcepacks/restore_end_story");
-
-                    var pack = Pack.readMetaAndCreate(
-                            "tact/restore_end_story",
-                            Component.literal("TACT - Restore End Story"),
-                            true,
-                            (path) -> new PathPackResources(path, false, resourcePath),
-                            PackType.CLIENT_RESOURCES,
-                            Pack.Position.TOP,
-                            PackSource.DEFAULT);
-
-                    event.addRepositorySource((packConsumer) -> packConsumer.accept(pack));
-                }
-            }
-
         }
-        catch(Exception ex) {
-            throw new RuntimeException(ex);
+        else if (event.getPackType() == PackType.CLIENT_RESOURCES) {
+            // Note for the 1.21.1 port: the unofficial Alex's Caves port does not ship the
+            // assets/minecraft/texts/end.txt override at all, so this pack has nothing to
+            // undo there. It is kept so the option behaves the same if that ever returns.
+            if (readConfig(Config.RESTORE_END_STORY::get)) {
+                event.addPackFinders(
+                        ResourceLocation.fromNamespaceAndPath(TACT.MODID, "resourcepacks/restore_end_story"),
+                        PackType.CLIENT_RESOURCES,
+                        Component.literal("TACT - Restore End Story"),
+                        PackSource.BUILT_IN,
+                        true,
+                        Pack.Position.TOP);
+            }
         }
     }
 
-    private static void loadTACTConfigsEarly() {
-        Optional<? extends ModContainer> modContainerById = ModList.get().getModContainerById(TACT.MODID);
-        modContainerById.ifPresent(container -> {
-            ConfigTracker.INSTANCE.configSets()
-                    .get(ModConfig.Type.COMMON)
-                    .forEach(c -> {
-                        if (c.getFileName().equals("tact-common.toml")) {
-                            try {
-                                Method method = ConfigTracker.INSTANCE.getClass().getDeclaredMethod("openConfig", ModConfig.class, Path.class);
-                                method.setAccessible(true);
-                                method.invoke(ConfigTracker.INSTANCE, c, FMLPaths.CONFIGDIR.get());
-                                method.setAccessible(false);
-                            }
-                            catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-        });
+    /**
+     * Pack finders can run before this mod's config has been read, in which case asking
+     * for a value throws. Treat that as "not enabled" rather than crashing startup.
+     */
+    private static boolean readConfig(java.util.function.BooleanSupplier supplier) {
+        try {
+            return supplier.getAsBoolean();
+        }
+        catch (Exception e) {
+            TACT.LOGGER.debug("TACT config not loaded yet when pack finders ran; skipping optional pack.");
+            return false;
+        }
     }
 }

@@ -19,7 +19,7 @@ public class DreadbowRainAttackModification {
         String[] overrideEntries = configOverrides.trim().split(",");
         for (String entry : overrideEntries) {
             try {
-                BuiltInRegistries.ITEM.getOptional(new ResourceLocation(entry.trim().split("=")[0]))
+                BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(entry.trim().split("=")[0]))
                         .ifPresent(item -> DREADBOW_OVERRIDES.put(item, Integer.parseInt(entry.trim().split("=")[1])));
             }
             catch (Exception e) {
