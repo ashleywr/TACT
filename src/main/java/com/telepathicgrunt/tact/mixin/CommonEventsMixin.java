@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(CommonEvents.class)
 public abstract class CommonEventsMixin {
 
-    @WrapOperation(method = "livingTick(Lnet/minecraftforge/event/entity/living/LivingEvent$LivingTickEvent;)V",
+    @WrapOperation(method = "livingTick(Lnet/neoforged/neoforge/event/tick/EntityTickEvent$Post;)V",
             at = @At(value = "INVOKE", target = "Lcom/github/alexmodguy/alexscaves/server/potion/DarknessIncarnateEffect;isInLight(Lnet/minecraft/world/entity/LivingEntity;I)Z", ordinal = 0, remap = false),
             require = 0, remap = false)
     private boolean tact_configurableDarknessCloakAbilityInLight2(LivingEntity living, int threshold, Operation<Boolean> original) {
